@@ -1,51 +1,37 @@
 import { createContext, useContext, useState } from "react";
-import type { AppMode, PatternMatch } from "../types/core";
+import type { AppMode } from "../types/core";
+
+interface Candle {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
 
 interface AppState {
   mode: AppMode;
   setMode: (m: AppMode) => void;
 
-  matches: PatternMatch[];
-  setMatches: (m: PatternMatch[]) => void;
-
-  similarity: number;
-  setSimilarity: (v: number) => void;
-
-  patternRange: { start: number; end: number } | null;
-  setPatternRange: (r: { start: number; end: number } | null) => void;
+  candles: Candle[];
+  setCandles: (c: Candle[]) => void;
 }
 
-const AppStateContext = createContext<AppState | null>(null);
+const Ctx = createContext<AppState | null>(null);
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<AppMode>("CHART");
-  const [matches, setMatches] = useState<PatternMatch[]>([]);
-  const [similarity, setSimilarity] = useState(80);
-  const [patternRange, setPatternRange] = useState<{
-    start: number;
-    end: number;
-  } | null>(null);
+  const [candles, setCandles] = useState<Candle[]>([]);
 
   return (
-    <AppStateContext.Provider
-      value={{
-        mode,
-        setMode,
-        matches,
-        setMatches,
-        similarity,
-        setSimilarity,
-        patternRange,
-        setPatternRange,
-      }}
-    >
+    <Ctx.Provider value={{ mode, setMode, candles, setCandles }}>
       {children}
-    </AppStateContext.Provider>
+    </Ctx.Provider>
   );
 }
 
 export function useAppState() {
-  const ctx = useContext(AppStateContext);
-  if (!ctx) throw new Error("AppState missing");
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error("Missing AppState");
   return ctx;
 }
