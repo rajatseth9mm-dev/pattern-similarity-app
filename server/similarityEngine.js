@@ -1,20 +1,22 @@
 // server/similarityEngine.js
 
-function normalizeCandles(candles) {
-  const opens = candles.map(c => c.open);
+function getScale(candles) {
   const highs = candles.map(c => c.high);
   const lows = candles.map(c => c.low);
-  const closes = candles.map(c => c.close);
 
   const min = Math.min(...lows);
   const max = Math.max(...highs);
   const range = max - min || 1;
 
+  return { min, range };
+}
+
+function normalizeWithScale(candles, scale) {
   return candles.map(c => ({
-    open: (c.open - min) / range,
-    high: (c.high - min) / range,
-    low: (c.low - min) / range,
-    close: (c.close - min) / range,
+    open: (c.open - scale.min) / scale.range,
+    high: (c.high - scale.min) / scale.range,
+    low: (c.low - scale.min) / scale.range,
+    close: (c.close - scale.min) / scale.range,
   }));
 }
 
@@ -27,7 +29,7 @@ function candleDistance(a, b) {
   );
 }
 
-function patternSimilarity(patternA, patternB) {
+function patternDistance(patternA, patternB) {
   let total = 0;
   for (let i = 0; i < patternA.length; i++) {
     total += candleDistance(patternA[i], patternB[i]);
@@ -43,18 +45,23 @@ function analyzeSimilarity({
 }) {
   const patternLength = endIndex - startIndex;
   const basePattern = candles.slice(startIndex, endIndex);
-  const normBase = normalizeCandles(basePattern);
+
+  // 🔒 normalize ONLY ONCE using base pattern scale
+  const baseScale = getScale(basePattern);
+  const normBase = normalizeWithScale(basePattern, baseScale);
 
   const results = [];
 
   for (let i = 0; i <= candles.length - patternLength; i++) {
-    // ❌ skip comparing pattern with itself
+    // ❌ skip self-match window
     if (i >= startIndex && i <= endIndex) continue;
 
     const window = candles.slice(i, i + patternLength);
-    const normWindow = normalizeCandles(window);
 
-    const distance = patternSimilarity(normBase, normWindow);
+    // ✅ normalize window using BASE scale
+    const normWindow = normalizeWithScale(window, baseScale);
+
+    const distance = patternDistance(normBase, normWindow);
 
     // Convert distance → similarity %
     const similarity = Math.max(0, 100 - distance * 100);
@@ -67,7 +74,6 @@ function analyzeSimilarity({
     }
   }
 
-  // Sort best first, limit results
   return results
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, 50);
