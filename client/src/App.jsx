@@ -4,7 +4,7 @@ export default function App() {
   const [result, setResult] = useState(null);
 
   async function analyze() {
-    const res = await fetch("RENDER_BACKEND_URL/analyze", {
+    const res = await fetch("https://pattern-similarity-app.onrender.com", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
