@@ -1,1 +1,26 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
+html,
+body {
+  height: 100%;
+  background: #0b0e11;
+  color: #eaecef;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+}
+
+button {
+  background: #1e2329;
+  color: #eaecef;
+  border: 1px solid #2b3139;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+button:active {
+  opacity: 0.8;
+}
