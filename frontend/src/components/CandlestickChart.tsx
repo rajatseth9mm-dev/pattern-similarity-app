@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import {
   createChart,
   ColorType,
+  IChartApi,
   ISeriesApi,
   CandlestickData,
 } from "lightweight-charts";
@@ -9,10 +10,12 @@ import { Candle } from "../types/core";
 
 interface Props {
   candles: Candle[];
+  onReady?: (chart: IChartApi) => void;
 }
 
-export default function CandlestickChart({ candles }: Props) {
+export default function CandlestickChart({ candles, onReady }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
 
   useEffect(() => {
@@ -29,16 +32,12 @@ export default function CandlestickChart({ candles }: Props) {
       },
       rightPriceScale: {
         borderColor: "#1e2329",
-        scaleMargins: { top: 0.1, bottom: 0.1 },
       },
       timeScale: {
         borderColor: "#1e2329",
         timeVisible: true,
-        secondsVisible: false,
       },
-      crosshair: {
-        mode: 1,
-      },
+      crosshair: { mode: 1 },
       handleScroll: true,
       handleScale: true,
       autoSize: true,
@@ -52,34 +51,31 @@ export default function CandlestickChart({ candles }: Props) {
       borderVisible: false,
     });
 
+    chartRef.current = chart;
     seriesRef.current = series;
+    onReady?.(chart);
 
-    return () => {
-      chart.remove();
-    };
+    return () => chart.remove();
   }, []);
 
   useEffect(() => {
     if (!seriesRef.current) return;
 
-    const data: CandlestickData[] = candles.map((c) => ({
-      time: (c.time / 1000) as any, // normalized to seconds
-      open: c.open,
-      high: c.high,
-      low: c.low,
-      close: c.close,
-    }));
-
-    seriesRef.current.setData(data);
+    seriesRef.current.setData(
+      candles.map((c) => ({
+        time: (c.time / 1000) as any,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      }))
+    );
   }, [candles]);
 
   return (
     <div
       ref={containerRef}
-      style={{
-        width: "100%",
-        height: "calc(100vh - 40px)",
-      }}
+      style={{ width: "100%", height: "calc(100vh - 40px)" }}
     />
   );
             }
