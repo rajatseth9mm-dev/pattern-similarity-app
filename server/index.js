@@ -1,5 +1,3 @@
-// server/index.js
-
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
@@ -7,6 +5,7 @@ const fs = require("fs");
 const csv = require("csv-parser");
 
 const { analyzeSimilarity } = require("./similarityEngine");
+const { generatePdf } = require("./pdfGenerator");
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
@@ -26,8 +25,7 @@ app.post("/upload-csv", upload.single("file"), (req, res) => {
   fs.createReadStream(req.file.path)
     .pipe(csv())
     .on("data", (row) => {
-      const timestamp =
-        Number(row.timestamp || row.time || row.UTC);
+      const timestamp = Number(row.timestamp || row.time || row.UTC);
 
       candles.push({
         time: timestamp,
@@ -48,7 +46,11 @@ app.post("/analyze", (req, res) => {
     return res.status(400).json({ error: "No CSV uploaded" });
   }
 
-  const { timeframe, start_index, end_index, similarity_threshold } = req.body;
+  const {
+    start_index,
+    end_index,
+    similarity_threshold
+  } = req.body;
 
   const matches = analyzeSimilarity({
     candles,
@@ -58,6 +60,23 @@ app.post("/analyze", (req, res) => {
   });
 
   res.json({ matches });
+});
+
+/**
+ * 🔒 FINAL PDF EXPORT ENDPOINT
+ */
+app.post("/export-pdf", (req, res) => {
+  if (!candles.length) {
+    return res.status(400).json({ error: "No CSV uploaded" });
+  }
+
+  const { matches } = req.body;
+
+  if (!matches || !matches.length) {
+    return res.status(400).json({ error: "No matches provided" });
+  }
+
+  generatePdf(res, matches, candles);
 });
 
 const PORT = process.env.PORT || 5000;
