@@ -1,49 +1,56 @@
 import { useEffect, useRef } from "react";
 import {
   createChart,
-  ColorType,
   IChartApi,
   ISeriesApi,
   CandlestickData,
 } from "lightweight-charts";
-import { Candle } from "../types/core";
+import { useAppState } from "../state/appState";
 
-interface Props {
-  candles: Candle[];
-  onReady?: (chart: IChartApi) => void;
-}
-
-export default function CandlestickChart({ candles, onReady }: Props) {
+export default function CandlestickChart() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
 
+  const { candles } = useAppState();
+
+  // Create chart ONCE
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const chart = createChart(containerRef.current, {
+    chartRef.current = createChart(containerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: "#0b0e11" },
-        textColor: "#eaecef",
+        background: { color: "#0b0e11" },
+        textColor: "#d1d4dc",
       },
       grid: {
-        vertLines: { color: "#1e2329" },
-        horzLines: { color: "#1e2329" },
+        vertLines: { color: "#1e222d" },
+        horzLines: { color: "#1e222d" },
       },
       rightPriceScale: {
-        borderColor: "#1e2329",
+        borderColor: "#2a2e39",
       },
       timeScale: {
-        borderColor: "#1e2329",
+        borderColor: "#2a2e39",
         timeVisible: true,
+        secondsVisible: false,
       },
-      crosshair: { mode: 1 },
-      handleScroll: true,
-      handleScale: true,
-      autoSize: true,
+      crosshair: {
+        mode: 1,
+      },
+      handleScroll: {
+        mouseWheel: true,
+        pressedMouseMove: true,
+        touchDrag: true,
+      },
+      handleScale: {
+        axisPressedMouseMove: true,
+        mouseWheel: true,
+        pinch: true,
+      },
     });
 
-    const series = chart.addCandlestickSeries({
+    seriesRef.current = chartRef.current.addCandlestickSeries({
       upColor: "#26a69a",
       downColor: "#ef5350",
       wickUpColor: "#26a69a",
@@ -51,31 +58,50 @@ export default function CandlestickChart({ candles, onReady }: Props) {
       borderVisible: false,
     });
 
-    chartRef.current = chart;
-    seriesRef.current = series;
-    onReady?.(chart);
+    const resize = () => {
+      if (containerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight,
+        });
+      }
+    };
 
-    return () => chart.remove();
+    resize();
+    window.addEventListener("resize", resize);
+
+    return () => {
+      window.removeEventListener("resize", resize);
+      chartRef.current?.remove();
+    };
   }, []);
 
+  // Update data WHEN candles change
   useEffect(() => {
-    if (!seriesRef.current) return;
+    if (!seriesRef.current || candles.length === 0) return;
 
-    seriesRef.current.setData(
-      candles.map((c) => ({
-        time: (c.time / 1000) as any,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-      }))
-    );
+    const formatted: CandlestickData[] = candles.map((c) => ({
+      time:
+        c.time > 1e12
+          ? Math.floor(c.time / 1000)
+          : c.time,
+      open: c.open,
+      high: c.high,
+      low: c.low,
+      close: c.close,
+    }));
+
+    seriesRef.current.setData(formatted);
+    chartRef.current?.timeScale().fitContent();
   }, [candles]);
 
   return (
     <div
       ref={containerRef}
-      style={{ width: "100%", height: "calc(100vh - 40px)" }}
+      style={{
+        width: "100%",
+        height: "calc(100vh - 90px)",
+      }}
     />
   );
-            }
+}
