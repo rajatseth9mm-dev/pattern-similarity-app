@@ -100,4 +100,4 @@ export default function PatternLines({
   }, [enabled, candles, chart, onSelect]);
 
   return null;
-      }
+        }
