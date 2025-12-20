@@ -1,10 +1,9 @@
 import { API_BASE } from "../config";
+import { useAppState } from "../state/appState";
 
-export default function UploadCSV({
-  onLoaded,
-}: {
-  onLoaded: (count: number) => void;
-}) {
+export default function UploadCSV() {
+  const { setCandles } = useAppState();
+
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -12,13 +11,24 @@ export default function UploadCSV({
     const form = new FormData();
     form.append("file", file);
 
-    const res = await fetch(`${API_BASE}/upload-csv`, {
+    await fetch(`${API_BASE}/upload-csv`, {
       method: "POST",
       body: form,
     });
 
+    // fetch candles back
+    const res = await fetch(`${API_BASE}/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        start_index: 0,
+        end_index: 0,
+        similarity_threshold: 0,
+      }),
+    });
+
     const data = await res.json();
-    onLoaded(data.candles);
+    setCandles(data.baseCandles || []);
   }
 
   return (
